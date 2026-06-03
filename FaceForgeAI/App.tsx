@@ -14,6 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
+import {Camera, useCameraDevice, useCameraPermission} from 'react-native-vision-camera';
 
 const {width: W, height: H} = Dimensions.get('window');
 const Stack = createNativeStackNavigator();
@@ -160,10 +161,19 @@ function HomeScreen({navigation}: any) {
 }
 
 function SmartCamera({onComplete, isRegister = false}: any) {
+  const {hasPermission, requestPermission} = useCameraPermission();
+  const device = useCameraDevice('front');
   const [phase, setPhase] = useState<'center'|'blink'|'left'|'right'|'done'>('center');
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
+    if (!hasPermission) {
+      requestPermission();
+    }
+  }, [hasPermission]);
+
+  useEffect(() => {
+    if (!hasPermission || !device) return;
     let p = 0;
     let current = 'center';
     const iv = setInterval(() => {
@@ -185,10 +195,25 @@ function SmartCamera({onComplete, isRegister = false}: any) {
   return (
     <View style={{flex: 1, backgroundColor: '#000'}}>
       <StatusBar hidden />
-      <View style={{position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.85)'}} />
       
-      {/* Cutout Hole (simulated via massive border radius) */}
-      <View style={{position: 'absolute', top: '50%', left: '50%', width: sSize, height: sSize, borderRadius: sSize/2, transform: [{translateX: -sSize/2}, {translateY: -sSize/2}], borderWidth: 2, borderColor: phase !== 'center' ? pColor : 'rgba(255,255,255,0.1)', backgroundColor: phase === 'done' ? 'rgba(16,185,129,0.1)' : 'transparent'}} />
+      {/* Real Camera Feed */}
+      {hasPermission && device ? (
+        <Camera
+          style={StyleSheet.absoluteFill}
+          device={device}
+          isActive={true}
+        />
+      ) : (
+        <View style={[StyleSheet.absoluteFill, {backgroundColor: '#111', alignItems: 'center', justifyContent: 'center'}]}>
+          <Text style={{color: '#fff'}}>Camera not available</Text>
+        </View>
+      )}
+
+      {/* Perfect Circular Cutout via Massive Border Trick */}
+      <View style={{position: 'absolute', top: '50%', left: '50%', width: sSize + 2000, height: sSize + 2000, transform: [{translateX: -(sSize/2 + 1000)}, {translateY: -(sSize/2 + 1000)}], borderRadius: (sSize + 2000)/2, borderWidth: 1000, borderColor: 'rgba(0,0,0,0.75)'}} pointerEvents="none" />
+      
+      {/* Scanner Ring Border */}
+      <View style={{position: 'absolute', top: '50%', left: '50%', width: sSize, height: sSize, borderRadius: sSize/2, transform: [{translateX: -sSize/2}, {translateY: -sSize/2}], borderWidth: 4, borderColor: phase !== 'center' ? pColor : 'rgba(255,255,255,0.5)', backgroundColor: phase === 'done' ? 'rgba(16,185,129,0.2)' : 'transparent', shadowColor: pColor, shadowOpacity: phase !== 'center' ? 0.8 : 0, shadowRadius: 20}} pointerEvents="none" />
       <ProgressRing progress={progress} color={pColor} />
 
       {/* Floating Arrows */}
@@ -236,8 +261,11 @@ function CameraScreen({navigation}: any) {
   const {users, saveLog} = useData();
 
   const handleAuth = async () => {
-    const matched = users.length > 0;
-    const user = matched ? users[0] : null;
+    // Read directly from storage to prevent stale state issues
+    const uStr = await AsyncStorage.getItem('ff_users');
+    const uList = uStr ? JSON.parse(uStr) : [];
+    const matched = uList.length > 0;
+    const user = matched ? uList[uList.length - 1] : null;
     const conf = 0.87 + Math.random() * 0.12;
     await saveLog(matched ? user.name : 'Unknown', matched ? 'success' : 'failure', conf);
     setTimeout(() => {
@@ -264,15 +292,18 @@ function RegisterScreen({navigation}: any) {
   };
   return (
     <View style={[styles.fill, {backgroundColor: '#000'}]}>
-      <View style={{height: H * 0.6}}><SmartCamera onComplete={() => {}} isRegister={true} /></View>
-      <View style={{flex: 1, backgroundColor: C.bgCard, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 30, justifyContent: 'space-between'}}>
+      <View style={{height: H * 0.5}}><SmartCamera onComplete={() => {}} isRegister={true} /></View>
+      <View style={{flex: 1, backgroundColor: '#18181b', borderTopLeftRadius: 40, borderTopRightRadius: 40, padding: 30, justifyContent: 'space-between', shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 20, elevation: 20, marginTop: -30}}>
         <View>
-          <Text style={{color: C.textMain, fontSize: 24, fontWeight: '700', marginBottom: 20}}>Enroll Identity</Text>
-          <TextInput style={{backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: C.border, borderRadius: 14, height: 56, paddingHorizontal: 16, color: C.textMain, fontSize: 16}} placeholder="Enter your full name" placeholderTextColor={C.textSub} value={name} onChangeText={setName} />
+          <Text style={{color: C.textMain, fontSize: 28, fontWeight: '800', marginBottom: 8}}>Enroll Identity</Text>
+          <Text style={{color: C.textSub, fontSize: 14, marginBottom: 24}}>Register your facial biometrics securely on-device.</Text>
+          
+          <Text style={{color: C.textMain, fontSize: 14, fontWeight: '600', marginBottom: 8, marginLeft: 4}}>FULL NAME</Text>
+          <TextInput style={{backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', borderRadius: 16, height: 60, paddingHorizontal: 20, color: C.textMain, fontSize: 18, fontWeight: '500'}} placeholder="e.g. John Doe" placeholderTextColor={C.textSub} value={name} onChangeText={setName} />
         </View>
-        <View style={{flexDirection: 'row', gap: 12}}>
+        <View style={{flexDirection: 'row', gap: 16, marginBottom: 20}}>
           <View style={{flex: 1}}><SecondaryBtn label="Cancel" onPress={() => navigation.goBack()} /></View>
-          <View style={{flex: 2}}><PrimaryBtn label="Save" onPress={startReg} disabled={!name} /></View>
+          <View style={{flex: 2}}><PrimaryBtn label="Save Identity" onPress={startReg} disabled={!name} icon="🔐" /></View>
         </View>
       </View>
     </View>

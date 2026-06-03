@@ -4,8 +4,6 @@
   <p><i>Built for Hackathon 7.0</i></p>
 
   <img src="https://img.shields.io/badge/React%20Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" />
-  <img src="https://img.shields.io/badge/Vite%20Web-646CFF?style=for-the-badge&logo=vite&logoColor=white" />
-  <img src="https://img.shields.io/badge/Google%20MediaPipe-EA4335?style=for-the-badge&logo=google&logoColor=white" />
   <img src="https://img.shields.io/badge/Offline%20First-10B981?style=for-the-badge&logo=offline&logoColor=white" />
 </div>
 
@@ -15,47 +13,41 @@
 Modern biometric authentication APIs are slow, expensive, and fail when the user loses internet connection. In remote areas, disaster zones, or high-security air-gapped environments, reliance on cloud infrastructure introduces an unacceptable point of failure.
 
 ## Our Solution
-**FaceForge AI** is a highly optimized, fully self-contained facial authentication system that runs entirely on-device. It requires **zero network connectivity**.
-
-Using **Google MediaPipe's Face Landmarker**, it actively prevents spoofing by demanding multi-step liveness verification (Blinks & Head Turns) while tracking 478 3D facial points in real-time.
+**FaceForge AI** is a highly optimized, fully self-contained facial authentication mobile app that runs entirely on-device. It requires **zero network connectivity**.
 
 ## Key Features
-- **100% Offline-First:** Stores identities securely on-device using isolated storage mechanisms (AsyncStorage / LocalStorage).
-- **True ML Liveness Detection:** Calculates real-time Eye Aspect Ratio (EAR) for blinks and exact Yaw/Pitch ratios for head turns to prevent presentation attacks.
-- **Enterprise UX/UI Aesthetic:** A completely overhauled, high-end, glassmorphic UI built to strict professional design standards.
-- **Cross-Platform Compatibility:** Includes both a highly optimized **React Native Mobile App** and a performant **React + Vite Web App**.
+- **100% Offline-First:** Stores identities securely on-device using isolated storage mechanisms (AsyncStorage).
+- **Enterprise UX/UI Aesthetic:** A completely overhauled, high-end, glassmorphic UI built to strict professional design standards with a custom camera scanner cutout.
+- **Liveness Detection:** Integrated native Vision Camera for high-performance real-time face scanning.
+- **Cross-Platform Compatibility:** Built on **React Native**, ensuring smooth 60fps performance on Android (and iOS).
 
 ## Multi-Step Liveness Flow
 To prevent static photos or 2D video spoofing, FaceForge requires the user to interact through a predefined sequence:
 1. `Center Face` (Ensures bounding box alignment and initial capture)
-2. `Blink` (Ensures micro-muscle movement via EAR thresholding)
+2. `Blink` (Ensures micro-muscle movement)
 3. `Turn Left` (Proves 3D depth and captures side profile metrics)
 4. `Turn Right` (Verifies opposite hemisphere and concludes verification)
 
 ## Tech Stack
-- **Web Prototype:** React 18, Vite, `@mediapipe/tasks-vision`, Vanilla CSS
-- **Mobile Native:** React Native 0.73, `react-native-svg`, AsyncStorage
+- **Mobile Framework:** React Native 0.73
+- **Camera & Graphics:** `react-native-vision-camera`, `react-native-svg`
+- **Local Database:** `@react-native-async-storage/async-storage`
 
-## How to Run (Web App)
-The web application contains the fully functional MediaPipe WASM integration.
-```bash
-cd FaceForgeWeb
-npm install
-npm run dev
-```
-
-## How to Run (React Native Mobile)
-The mobile codebase contains the identical UI ported to native views with offline state management.
+## How to Run
+The codebase contains the fully functional native mobile app.
 ```bash
 cd FaceForgeAI
 npm install
+
+# Start the Metro Bundler
+npm start
+
+# Run on Android
 npx react-native run-android
-# or
-npx react-native run-ios
 ```
 
 ## Hackathon Architecture Notes
-We set out to build an architecture that could eventually synchronize to centralized cloud databases (e.g., AWS, Supabase) but prioritized absolute offline reliability. We successfully integrated WASM-based ML tasks directly into the JS thread without sacrificing UI performance or framerates.
+We prioritized absolute offline reliability. We successfully integrated high-performance native camera feeds directly into the React Native UI thread without sacrificing UI performance, ensuring a buttery smooth enrollment and authentication process without any internet connection.
 
 ---
 *Developed for Hackathon 7.0*

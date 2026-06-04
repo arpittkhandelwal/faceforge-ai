@@ -529,14 +529,20 @@ const AppShell = ({ landmarker }: any) => {
     
     let isMatch = !!user;
     let confidence = 0.87 + Math.random() * 0.12;
-    if (user && user.signature && currentSignature) {
-       const diff = compareSignatures(user.signature, currentSignature);
-       // Loosened threshold for prototype to prevent false rejections due to webcam angle changes
-       if (diff > 0.40) {
-          isMatch = false; 
-          confidence = Math.max(0, 0.5 - diff); 
+    if (user) {
+       if (user.signature && currentSignature) {
+          const diff = compareSignatures(user.signature, currentSignature);
+          // Tightened threshold (0.15) to properly reject different faces
+          if (diff > 0.15) {
+             isMatch = false; 
+             confidence = Math.max(0, 0.5 - diff); 
+          } else {
+             confidence = Math.min(0.99, 0.95 - diff/2);
+          }
        } else {
-          confidence = Math.min(0.99, 0.95 - diff/2);
+          // If they enrolled before the geometric feature was added, reject to force re-enrollment
+          isMatch = false;
+          confidence = 0.1;
        }
     }
 

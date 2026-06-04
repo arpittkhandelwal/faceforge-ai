@@ -443,8 +443,16 @@ const VaultTab = ({ navigate }: any) => {
 
 // ─── PROFILE TAB ───────────────────────────────────────────
 const ProfileTab = ({ navigate }: any) => {
-  const users = getUsers();
+  const [users, setUsersLocal] = useState(getUsers());
   const logs  = getLogs();
+
+  const deleteUser = (uid: string) => {
+    if(!confirm("Are you sure you want to delete this identity and its facial signature?")) return;
+    const newUsers = users.filter((u: any) => u.id !== uid);
+    setUsersLocal(newUsers);
+    setUsers(newUsers);
+    speak("Identity deleted.");
+  };
 
   return (
     <div style={{ flex:1, overflowY:'auto', padding:'16px 20px', background:'#f5f7fa' }}>
@@ -472,7 +480,7 @@ const ProfileTab = ({ navigate }: any) => {
       <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:24 }}>
         {users.length === 0 ? (
           <div style={{ background:'#fff', borderRadius:16, textAlign:'center', padding:'24px', color:'#718096', fontSize:13, fontWeight:600 }}>No identities enrolled yet.</div>
-        ) : users.map((u) => {
+        ) : users.map((u: any) => {
           const files = getVaultFiles(u.id);
           return (
             <div key={u.id} style={{ background:'#fff', borderRadius:16, padding:'12px 16px', display:'flex', alignItems:'center', gap:12, boxShadow:'0 4px 12px rgba(0,0,0,0.02)' }}>
@@ -481,6 +489,7 @@ const ProfileTab = ({ navigate }: any) => {
                 <div style={{ fontSize:15, fontWeight:800, color:'#1a202c', marginBottom:2 }}>{u.name}</div>
                 <div style={{ fontSize:11, color:'#718096', fontWeight:600 }}>{u.role||'Staff'} · {files.length} Vault File{files.length!==1?'s':''}</div>
               </div>
+              <button onClick={() => deleteUser(u.id)} style={{ width:36, height:36, borderRadius:10, background:'#fff5f5', color:'#e53e3e', border:'1px solid #fed7d7', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, flexShrink:0 }}>🗑️</button>
             </div>
           );
         })}

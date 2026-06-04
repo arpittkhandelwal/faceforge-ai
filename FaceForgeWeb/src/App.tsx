@@ -3,7 +3,7 @@ import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
 import './index.css';
 
 // ─── TYPES & STORAGE ───────────────────────────────────────
-type User = { id: string; name: string; pin: string; role: string; createdAt: number };
+type User = { id: string; name: string; pin: string; role: string; createdAt: number; signature?: number[] };
 type Log  = { id: string; userName: string; result: string; timestamp: number; confidence: number };
 type VaultFile = { id: string; name: string; size: number; type: string; data: string; addedAt: number };
 
@@ -19,6 +19,20 @@ const speak = (text: string) => {
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   u.rate = 1.05; window.speechSynthesis.speak(u);
+};
+
+const getFaceSignature = (lm: any) => {
+  const dist = (p1:any, p2:any) => Math.hypot(p1.x-p2.x, p1.y-p2.y, p1.z-p2.z);
+  const eyeDist = dist(lm[33], lm[263]);
+  const noseToChin = dist(lm[1], lm[152]);
+  const mouthWidth = dist(lm[61], lm[291]);
+  const noseWidth = dist(lm[98], lm[327]);
+  return [eyeDist/noseToChin, mouthWidth/eyeDist, noseWidth/mouthWidth];
+};
+
+const compareSignatures = (s1?: number[], s2?: number[]) => {
+  if(!s1 || !s2) return 0;
+  return Math.sqrt(s1.reduce((a,c,i) => a + Math.pow(c - s2[i], 2), 0));
 };
 
 // ─── AI MODEL ──────────────────────────────────────────────
@@ -500,22 +514,41 @@ const AppShell = ({ landmarker }: any) => {
   const goBack = () => { setSubRoute(null); setSubParams(null); };
   const tabTitles: any = { home:'Dashboard', scan:'Face Scan', vault:'Secure Vault', profile:'Profile' };
 
-  const handleAuthComplete = () => {
+  const handleAuthComplete = (currentSignature?: number[]) => {
     const user = subParams?.user;
     const intent = subParams?.intent;
+    
+    let isMatch = !!user;
+    let confidence = 0.87 + Math.random() * 0.12;
+    if (user && user.signature && currentSignature) {
+       const diff = compareSignatures(user.signature, currentSignature);
+       if (diff > 0.12) {
+          isMatch = false; 
+          confidence = Math.max(0, 0.5 - diff); 
+       } else {
+          confidence = Math.min(0.99, 0.95 - diff);
+       }
+    }
+
     const logs = getLogs();
-    const log: Log = { id: Date.now().toString(), userName: user?.name||'Unknown', result: user?'success (Face)':'failure', timestamp: Date.now(), confidence: 0.87+Math.random()*0.12 };
+    const log: Log = { id: Date.now().toString(), userName: user?.name||'Unknown', result: isMatch?'success (Face)':'failure', timestamp: Date.now(), confidence };
     logs.unshift(log); setLogs(logs);
     
+    if (user && !isMatch) {
+       speak("Sorry, face does not match the profile.");
+       setSubRoute('result'); setSubParams({ success: false, user, confidence, intent });
+       return;
+    }
+
     if (intent === 'vault') {
        if (user) {
           speak("Vault unlocked.");
           setSubRoute('vault-direct'); setSubParams({ user });
        } else {
-          setSubRoute('result'); setSubParams({ success: false, user, confidence: log.confidence, intent });
+          setSubRoute('result'); setSubParams({ success: false, user, confidence, intent });
        }
     } else {
-       setSubRoute('result'); setSubParams({ success:!!user, user, confidence:log.confidence, intent });
+       setSubRoute('result'); setSubParams({ success:!!user, user, confidence, intent });
     }
   };
 
@@ -602,9 +635,9 @@ const RegisterScreen = ({ navigate, landmarker, onBack }: any) => {
   const [pinConfirm, setPinConfirm] = useState('');
   const [pinError, setPinError] = useState('');
 
-  const handleSave = () => {
+  const handleSave = (signature: number[]) => {
     const users = getUsers();
-    users.push({ id: Date.now().toString(), name: name.trim(), pin, role, createdAt: Date.now() });
+    users.push({ id: Date.now().toString(), name: name.trim(), pin, role, createdAt: Date.now(), signature });
     setUsers(users);
     speak(`Identity enrolled for ${name}.`);
     setStep(3);
@@ -708,7 +741,7 @@ const SmartCamera = ({ landmarker, onComplete }: any) => {
           ctx.fillStyle='rgba(0,220,255,1)';for(const idx of[1,33,263,61,291,199]){const pt=lm[idx];ctx.beginPath();ctx.arc(pt.x*canvas.width,pt.y*canvas.height,3.5,0,2*Math.PI);ctx.fill();}
           if(curPhase==='center'){const n=lm[1];upProg(n.x>0.3&&n.x<0.7&&n.y>0.3&&n.y<0.7?pProg+10:pProg-5);if(pProg>=100)goPhase('blink');}
           else if(curPhase==='blink'&&results.faceBlendshapes?.length){const bs=results.faceBlendshapes[0].categories;const lB=bs.find((b:any)=>b.categoryName==='eyeBlinkLeft')?.score||0;const rB=bs.find((b:any)=>b.categoryName==='eyeBlinkRight')?.score||0;if(lB>0.4&&rB>0.4)upProg(100);else if(pProg===100&&lB<0.1&&rB<0.1)goPhase('left');}
-          else if(curPhase==='left'||curPhase==='right'){const n=lm[1],le=lm[234],re=lm[454];const off=(n.x-le.x)/(re.x-le.x);if(curPhase==='left'){if(off>0.65)upProg(100);else if(pProg===100&&off>0.4&&off<0.6)goPhase('right');}else{if(off<0.35)upProg(100);else if(pProg===100&&off>0.4&&off<0.6){goPhase('done');setTimeout(()=>onComplete(),600);}}}
+          else if(curPhase==='left'||curPhase==='right'){const n=lm[1],le=lm[234],re=lm[454];const off=(n.x-le.x)/(re.x-le.x);if(curPhase==='left'){if(off>0.65)upProg(100);else if(pProg===100&&off>0.4&&off<0.6)goPhase('right');}else{if(off<0.35)upProg(100);else if(pProg===100&&off>0.4&&off<0.6){goPhase('done');const sig=getFaceSignature(lm);setTimeout(()=>onComplete(sig),600);}}}
         }else if(curPhase==='center')upProg(0);
         setLatency(Math.round(performance.now()-t0));
       }

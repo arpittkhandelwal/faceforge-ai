@@ -211,7 +211,7 @@ const HomeTab = ({ navigate }: any) => {
   const successLogs = logs.filter(l => l.result.includes('success'));
   const avgConf = successLogs.length ? (successLogs.reduce((a,c)=>a+c.confidence,0)/successLogs.length*100).toFixed(0) : '0';
   
-  
+  return (
     <div style={{ flex:1, overflowY:'auto', padding:'20px 24px', background: '#eef2f6', position:'relative' }}>
        {/* Inject crazy keyframes inline */}
        <style>{`

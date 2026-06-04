@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
 import './index.css';
 
@@ -211,10 +211,7 @@ const HomeTab = ({ navigate }: any) => {
   const successLogs = logs.filter(l => l.result.includes('success'));
   const avgConf = successLogs.length ? (successLogs.reduce((a,c)=>a+c.confidence,0)/successLogs.length*100).toFixed(0) : '0';
   
-  const [time, setTime] = useState(new Date());
-  useEffect(() => { const timer = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(timer); }, []);
-
-  return (
+  
     <div style={{ flex:1, overflowY:'auto', padding:'20px 24px', background: '#eef2f6', position:'relative' }}>
        {/* Inject crazy keyframes inline */}
        <style>{`
@@ -380,7 +377,7 @@ const ScanTab = ({ navigate }: any) => {
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
           <div style={{ fontSize:11, fontWeight:800, color:'#a0aec0', letterSpacing:1.5, marginBottom:4 }}>SELECT IDENTITY</div>
-          {users.map((u, i) => (
+          {users.map((u) => (
             <div key={u.id} onClick={() => { speak(`Verifying ${u.name}`); navigate('camera', { user: u }); }}
               style={{ background:'#fff', borderRadius:20, padding:'12px', cursor:'pointer', display:'flex', alignItems:'center', gap:14, boxShadow:'0 4px 12px rgba(0,0,0,0.03)' }}>
               <div style={{ width:56, height:56, borderRadius:16, background:'linear-gradient(135deg,#003580,#0066ff)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, fontWeight:900, color:'#fff', flexShrink:0, boxShadow:'0 8px 16px rgba(0,85,204,0.2)' }}>{u.name[0].toUpperCase()}</div>
@@ -412,7 +409,7 @@ const VaultTab = ({ navigate }: any) => {
     <div style={{ flex:1, overflowY:'auto', padding:'16px 20px', background:'#f5f7fa' }}>
       <div style={{ fontSize:11, fontWeight:800, color:'#a0aec0', letterSpacing:1.5, marginBottom:16 }}>ACCESS SECURE VAULT</div>
       <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-        {users.map((u,i) => {
+        {users.map((u) => {
           const files = getVaultFiles(u.id);
           return (
             <div key={u.id} onClick={() => navigate('vault-auth', { user: u })} style={{ background:'#fff', borderRadius:20, padding:'16px', cursor:'pointer', display:'flex', alignItems:'center', gap:16, boxShadow:'0 8px 24px rgba(0,0,0,0.04)' }}>
@@ -499,10 +496,6 @@ const AppShell = ({ landmarker }: any) => {
   const [subRoute, setSubRoute] = useState<null|string>(null);
   const [subParams, setSubParams] = useState<any>(null);
 
-  const navigate = (action: string | null, newTab?: string) => {
-    if (newTab) { setTab(newTab); setSubRoute(null); return; }
-    if (action) { setSubRoute(action); }
-  };
 
   const goBack = () => { setSubRoute(null); setSubParams(null); };
   const tabTitles: any = { home:'Dashboard', scan:'Face Scan', vault:'Secure Vault', profile:'Profile' };
@@ -803,7 +796,7 @@ const ResultScreen = ({ navigate, routeParams }: any) => {
   );
 };
 
-const VaultScreen = ({ navigate, routeParams, onBack }: any) => {
+const VaultScreen = ({ routeParams, onBack }: any) => {
   const { user } = routeParams||{};
   const [files,setFiles]=useState<VaultFile[]>(()=>user?getVaultFiles(user.id):[]);
   const [dragging,setDragging]=useState(false);const [preview,setPreview]=useState<VaultFile|null>(null);
@@ -841,7 +834,7 @@ const AdminScreen = ({ navigate }: any) => {
 
 const LogsScreen = ({ onBack }: any) => {
   const logs=getLogs();
-  return(<div className="fill animate-fade-in" style={{display:'flex',flexDirection:'column',background:'#f5f7fa'}}><div style={{padding:'24px 20px 0',marginBottom:24}}><button onClick={onBack} style={{background:'#fff',border:'1px solid #e2e8f0',cursor:'pointer',color:'#1a202c',fontSize:12,fontWeight:800,marginBottom:20,padding:'8px 16px',borderRadius:50,boxShadow:'0 4px 12px rgba(0,0,0,0.03)'}}>← Back</button><h2 style={{fontSize:28,fontWeight:900,letterSpacing:-1,color:'#1a202c'}}>Access Logs</h2><p style={{color:'#718096',fontSize:14,marginTop:6,fontWeight:600}}>{logs.length} system events recorded</p></div><div style={{flex:1,overflowY:'auto',padding:'0 20px 20px',display:'flex',flexDirection:'column',gap:12}}>{logs.length===0?<div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',color:'#a0aec0',gap:12,paddingBottom:60}}><div style={{fontSize:48}}>📋</div><p style={{fontWeight:800,fontSize:15}}>No events logged</p></div>:logs.map((l,i)=>{const ok=l.result.includes('success');return(<div key={l.id} style={{display:'flex',alignItems:'center',gap:14,padding:'16px',background:'#fff',borderRadius:20,boxShadow:'0 4px 12px rgba(0,0,0,0.03)',borderLeft:`4px solid ${ok?'#38b2ac':'#e53e3e'}`}}><div style={{width:44,height:44,borderRadius:14,background:ok?'#e6fffa':'#fff5f5',color:ok?'#38b2ac':'#e53e3e',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0,fontWeight:900}}>{ok?'✓':'✕'}</div><div style={{flex:1,minWidth:0}}><div style={{fontSize:15,fontWeight:900,color:'#1a202c',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginBottom:4}}>{l.userName}</div><div style={{fontSize:11,color:'#718096',fontWeight:700}}>{new Date(l.timestamp).toLocaleTimeString()} · Conf: {Math.round(l.confidence*100)}%</div></div><div style={{fontSize:10,fontWeight:800,color:ok?'#38b2ac':'#e53e3e',background:ok?'#e6fffa':'#fff5f5',padding:'6px 12px',borderRadius:50,flexShrink:0}}>{ok?'GRANTED':'DENIED'}</div></div>);})}</div></div>);
+  return(<div className="fill animate-fade-in" style={{display:'flex',flexDirection:'column',background:'#f5f7fa'}}><div style={{padding:'24px 20px 0',marginBottom:24}}><button onClick={onBack} style={{background:'#fff',border:'1px solid #e2e8f0',cursor:'pointer',color:'#1a202c',fontSize:12,fontWeight:800,marginBottom:20,padding:'8px 16px',borderRadius:50,boxShadow:'0 4px 12px rgba(0,0,0,0.03)'}}>← Back</button><h2 style={{fontSize:28,fontWeight:900,letterSpacing:-1,color:'#1a202c'}}>Access Logs</h2><p style={{color:'#718096',fontSize:14,marginTop:6,fontWeight:600}}>{logs.length} system events recorded</p></div><div style={{flex:1,overflowY:'auto',padding:'0 20px 20px',display:'flex',flexDirection:'column',gap:12}}>{logs.length===0?<div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',color:'#a0aec0',gap:12,paddingBottom:60}}><div style={{fontSize:48}}>📋</div><p style={{fontWeight:800,fontSize:15}}>No events logged</p></div>:logs.map((l)=>{const ok=l.result.includes('success');return(<div key={l.id} style={{display:'flex',alignItems:'center',gap:14,padding:'16px',background:'#fff',borderRadius:20,boxShadow:'0 4px 12px rgba(0,0,0,0.03)',borderLeft:`4px solid ${ok?'#38b2ac':'#e53e3e'}`}}><div style={{width:44,height:44,borderRadius:14,background:ok?'#e6fffa':'#fff5f5',color:ok?'#38b2ac':'#e53e3e',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0,fontWeight:900}}>{ok?'✓':'✕'}</div><div style={{flex:1,minWidth:0}}><div style={{fontSize:15,fontWeight:900,color:'#1a202c',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginBottom:4}}>{l.userName}</div><div style={{fontSize:11,color:'#718096',fontWeight:700}}>{new Date(l.timestamp).toLocaleTimeString()} · Conf: {Math.round(l.confidence*100)}%</div></div><div style={{fontSize:10,fontWeight:800,color:ok?'#38b2ac':'#e53e3e',background:ok?'#e6fffa':'#fff5f5',padding:'6px 12px',borderRadius:50,flexShrink:0}}>{ok?'GRANTED':'DENIED'}</div></div>);})}</div></div>);
 };
 
 // ─── ROOT ──────────────────────────────────────────────────

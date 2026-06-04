@@ -561,7 +561,7 @@ const SelectIdentityScreen = ({ navigate, onBack }: any) => {
         <p style={{ color:'#718096', fontSize:14, marginTop:6, fontWeight:500 }}>Choose who you want to verify as.</p>
       </div>
       <div style={{ flex:1, overflowY:'auto', padding:'0 20px', display:'flex', flexDirection:'column', gap:12 }}>
-        {users.map((u,i) => (
+        {users.map((u) => (
           <div key={u.id} onClick={() => navigate('camera',{user:u})} style={{ background:'#fff', borderRadius:20, padding:'12px', cursor:'pointer', display:'flex', alignItems:'center', gap:14, boxShadow:'0 8px 20px rgba(0,0,0,0.03)' }}>
             <div style={{ width:56, height:56, borderRadius:16, background:'linear-gradient(135deg,#003580,#0066ff)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, fontWeight:900, color:'#fff', flexShrink:0, boxShadow:'0 8px 16px rgba(0,85,204,0.2)' }}>{u.name[0].toUpperCase()}</div>
             <div style={{ flex:1, minWidth:0 }}>
